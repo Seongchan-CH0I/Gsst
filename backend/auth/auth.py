@@ -65,8 +65,70 @@ class User(Base):
 print("데이터베이스 모델 정의 완료: User")
 
 
+# --- 3. 데이터 스키마 정의 (Schemas) ---
+
+class UserBase(BaseModel):
+    email: str
+    name: str
+
+class UserCreate(UserBase):
+    password: str
+    social_provider: Optional[str] = None
+    social_id: Optional[str] = None
+
+class UserInDB(UserBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True # SQLAlchemy 모델과 Pydantic 모델을 매핑
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+print("데이터 스키마 정의 완료: UserBase, UserCreate, UserInDB, Token, TokenData")
+
+
+# --- 4. 보안 유틸리티 (Security) ---
+
+# .env 파일에서 JWT 설정값 로드
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256") # .env 파일에 없으면 기본값으로 HS256 사용
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30)) # .env 파일에 없으면 기본값 30분
+
+# 비밀번호 해싱을 위한 CryptContext 객체 생성
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# OAuth2PasswordBearer 객체 생성 (토큰 URL 지정)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# 비밀번호 해싱 함수
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+# 비밀번호 검증 함수
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+# 액세스 토큰 생성 함수
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+print("보안 유틸리티 구현 완료: .env 파일의 설정값을 사용합니다.")
+
+
 # --- 다음 단계에 구현될 코드 영역 ---
-# 3. 데이터 스키마 정의
-# 4. 보안 유틸리티 구현
 # 5. 데이터베이스 CRUD 함수 구현
 # 6. API 라우터 및 엔드포인트 구현
