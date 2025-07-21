@@ -98,8 +98,8 @@ print("데이터 스키마 정의 완료: UserBase, UserCreate, UserInDB, Token,
 
 # .env 파일에서 JWT 설정값 로드
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256") # .env 파일에 없으면 기본값으로 HS256 사용
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30)) # .env 파일에 없으면 기본값 30분
+ALGORITHM = os.getenv("JWT_ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 # 비밀번호 해싱을 위한 CryptContext 객체 생성
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -117,18 +117,43 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 # 액세스 토큰 생성 함수
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
+    to_encode = data.copy() # data: 클라이언트 구별 정보
+    if expires_delta: # expires_delta: 만료 시간
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire}) # 이제 to_encode 딕셔너리는 사용자 식별 정보, 만료시간 정보를 모두 가짐
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 print("보안 유틸리티 구현 완료: .env 파일의 설정값을 사용합니다.")
 
 
+# --- 5. 데이터베이스 CRUD 함수 구현 (CRUD) ---
+
+from sqlalchemy.orm import Session
+
+# 이메일로 사용자 정보 조회
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+# 사용자 생성
+def create_user(db: Session, user: UserCreate):
+    hashed_password = get_password_hash(user.password)
+    db_user = User(
+        email=user.email,
+        name=user.name,
+        hashed_password=hashed_password,
+        social_provider=user.social_provider,
+        social_id=user.social_id
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+print("데이터베이스 CRUD 함수 구현 완료: get_user_by_email, create_user")
+
+
 # --- 다음 단계에 구현될 코드 영역 ---
-# 5. 데이터베이스 CRUD 함수 구현
 # 6. API 라우터 및 엔드포인트 구현
