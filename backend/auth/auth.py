@@ -138,7 +138,7 @@ def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
 # 사용자 생성
-def create_user(db: Session, user: UserCreate):
+def create_user(db: Session, user: UserCregate):
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
@@ -155,5 +155,99 @@ def create_user(db: Session, user: UserCreate):
 print("데이터베이스 CRUD 함수 구현 완료: get_user_by_email, create_user")
 
 
-# --- 다음 단계에 구현될 코드 영역 ---
-# 6. API 라우터 및 엔드포인트 구현
+# --- 6. API 라우터 및 엔드포인트 구현 (API Layer) ---
+
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+
+# APIRouter 인스턴스 생성
+router = APIRouter()
+
+# --- 의존성 함수 ---
+
+# 현재 로그인된 사용자 정보를 가져오는 의존성 함수
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+        token_data = TokenData(email=email)
+    except JWTError:
+        raise credentials_exception
+    
+    user = get_user_by_email(db, email=token_data.email)
+    if user is None:
+        raise credentials_exception
+    return user
+
+# --- API 엔드포인트 ---
+
+@router.post("/register", response_model=UserInDB, status_code=status.HTTP_201_CREATED, summary="회원가입")
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    """
+    **새로운 사용자를 등록합니다.**
+
+    - **email**: 사용자의 이메일 주소 (로그인 시 ID로 사용)
+    - **password**: 사용할 비밀번호
+    - **name**: 사용자의 이름
+    """
+    db_user = get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+    
+    # UserCreate 스키마에 password 필드가 있으므로 직접 전달
+    return create_user(db=db, user=user)
+
+
+@router.post("/login", response_model=Token, summary="로그인") # 사용자 로그인 후 JWT 액세스 토큰 발급
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = get_user_by_email(db, email=form_data.username)
+    if not user or not verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+class DevLoginRequest(BaseModel):
+    email: str
+
+@router.post("/dev-login", response_model=Token, summary="개발용 로그인", include_in_schema=False) # 스키마에 미포함
+async def dev_login_for_access_token(request: DevLoginRequest, db: Session = Depends(get_db)):
+    user = get_user_by_email(db, email=request.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found. Please register the user first.",
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=UserInDB, summary="현재 사용자 정보 확인")
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    """
+    **현재 로그인된 사용자의 정보를 반환합니다.**
+
+    (인증 필요 - 토큰을 헤더에 포함해야 함)
+    """
+    return current_user
+
+print("API 라우터 및 엔드포인트 구현 완료: /register, /login, /dev-login, /me")
+

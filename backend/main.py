@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import recommend
+from backend.routers import recommend, mypage
+from backend.auth import auth
 
 app = FastAPI()
 
@@ -20,7 +21,9 @@ app.add_middleware(
 )
 
 # 라우터 등록
-app.include_router(recommend.router)
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(recommend.router, prefix="/recipes", tags=["Recipes"])
+app.include_router(mypage.router, prefix="/mypage", tags=["My Page"])
 
 @app.get("/")
 def read_root():
