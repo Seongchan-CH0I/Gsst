@@ -138,7 +138,7 @@ def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
 # 사용자 생성
-def create_user(db: Session, user: UserCregate):
+def create_user(db: Session, user: UserCreate):
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
@@ -242,11 +242,6 @@ async def dev_login_for_access_token(request: DevLoginRequest, db: Session = Dep
 
 @router.get("/me", response_model=UserInDB, summary="현재 사용자 정보 확인")
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    """
-    **현재 로그인된 사용자의 정보를 반환합니다.**
-
-    (인증 필요 - 토큰을 헤더에 포함해야 함)
-    """
     return current_user
 
 print("API 라우터 및 엔드포인트 구현 완료: /register, /login, /dev-login, /me")
