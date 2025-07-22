@@ -143,7 +143,7 @@ def create_user(db: Session, user: UserCreate):
     db_user = User(
         email=user.email,
         name=user.name,
-        hashed_password=hashed_password,
+        password=hashed_password,
         social_provider=user.social_provider,
         social_id=user.social_id
     )
@@ -190,13 +190,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 @router.post("/register", response_model=UserInDB, status_code=status.HTTP_201_CREATED, summary="회원가입")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    """
-    **새로운 사용자를 등록합니다.**
-
-    - **email**: 사용자의 이메일 주소 (로그인 시 ID로 사용)
-    - **password**: 사용할 비밀번호
-    - **name**: 사용자의 이름
-    """
     db_user = get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
