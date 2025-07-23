@@ -1,5 +1,9 @@
 fastapi
-uvicorn[standard]
+uvicorn
+requests
+python-dotenv
+python-jose[cryptography]
+passlib[bcrypt][standard]
 mysql-connector-python
 google-generativeai
 python-dotenv
