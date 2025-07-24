@@ -37,6 +37,9 @@ dependencies:
   device_preview: ^1.1.0
   http: ^1.2.1
   url_launcher: ^6.3.2
+  flutter_secure_storage: ^9.0.0
+  webview_flutter: ^4.7.0
+  webview_flutter_web: ^0.2.1+2
 
 dev_dependencies:
   flutter_test:
