@@ -12,11 +12,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 # CORS 설정
-origins = [
-    "http://localhost",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,

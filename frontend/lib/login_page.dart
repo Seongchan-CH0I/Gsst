@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:frontend/kakao_login_webview.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -17,10 +18,6 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final storage = new FlutterSecureStorage();
 
-  // .env 파일이나 별도 설정 파일에서 가져오는 것을 권장합니다.
-  final String KAKAO_CLIENT_ID = '807d6d35b8f02a32b45a2b425cffa38c';
-  final String KAKAO_REDIRECT_URI = 'http://localhost:8080/auth/kakao/callback';
-
   void _login() {
     if (_formKey.currentState!.validate()) {
       // TODO: Implement email/password login logic
@@ -30,40 +27,23 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loginWithKakao() async {
-    final kakaoLoginUrl = 'https://kauth.kakao.com/oauth/authorize?client_id=$KAKAO_CLIENT_ID&redirect_uri=$KAKAO_REDIRECT_URI&response_type=code';
+    try {
+      OAuthToken token = await UserApi.instance.loginWithKakaoAccount();
+      final response = await http.post(
+        Uri.parse('http://localhost:8000/auth/login/kakao'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'access_token': token.accessToken}),
+      );
 
-    // 웹뷰를 띄우고, 결과(인가 코드)를 받음
-    final authCode = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => KakaoLoginWebView(
-          kakaoLoginUrl: kakaoLoginUrl,
-          redirectUri: KAKAO_REDIRECT_URI,
-        ),
-      ),
-    );
-
-    if (authCode != null) {
-      // 인가 코드를 백엔드로 전송하여 JWT 토큰 받기
-      try {
-        final response = await http.post(
-          Uri.parse('http://localhost:8000/auth/login/kakao'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'code': authCode}),
-        );
-
-        if (response.statusCode == 200) {
-          final tokenData = jsonDecode(response.body);
-          await storage.write(key: 'access_token', value: tokenData['access_token']);
-          
-          // 로그인 성공 후, 이전 페이지(마이페이지)로 돌아가서 상태 갱신
-          Navigator.of(context).pop(true); // true를 전달하여 로그인 성공을 알림
-        } else {
-          _showErrorDialog('카카오 로그인 실패: ${response.body}');
-        }
-      } catch (e) {
-        _showErrorDialog('오류 발생: $e');
+      if (response.statusCode == 200) {
+        final tokenData = jsonDecode(response.body);
+        await storage.write(key: 'access_token', value: tokenData['access_token']);
+        Navigator.of(context).pop(true);
+      } else {
+        _showErrorDialog('카카오 로그인 실패: ${response.body}');
       }
+    } catch (error) {
+      _showErrorDialog('카카오 로그인 오류: $error');
     }
   }
 

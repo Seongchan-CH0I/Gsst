@@ -14,7 +14,7 @@ from typing import List, Optional
 # --- 1. 데이터베이스 설정 및 연결 (Foundation) ---
 
 # .env 파일에서 환경 변수 로드
-dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
 load_dotenv(dotenv_path=dotenv_path)
 
 DB_USER = os.getenv("DB_USER")
@@ -80,8 +80,8 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-class KakaoCode(BaseModel):
-    code: str
+class KakaoAccessToken(BaseModel):
+    access_token: str
 
 print("데이터 스키마 정의 완료")
 
@@ -193,26 +193,10 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/login/kakao", response_model=Token, summary="카카오 소셜 로그인")
-async def login_kakao(kakao_code: KakaoCode, db: Session = Depends(get_db)):
-    # 1. 인증 코드로 액세스 토큰 요청
-    token_url = "https://kauth.kakao.com/oauth/token"
-    token_data = {
-        "grant_type": "authorization_code",
-        "client_id": KAKAO_CLIENT_ID,
-        "redirect_uri": KAKAO_REDIRECT_URI,
-        "code": kakao_code.code,
-    }
-    token_headers = {"Content-type": "application/x-www-form-urlencoded;charset=utf-8"}
-    
-    token_res = requests.post(token_url, headers=token_headers, data=token_data)
-    token_json = token_res.json()
+async def login_kakao(kakao_access_token: KakaoAccessToken, db: Session = Depends(get_db)):
+    access_token = kakao_access_token.access_token
 
-    if token_res.status_code != 200 or "access_token" not in token_json:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"카카오 토큰 발급 실패: {token_json.get('error_description', '')}")
-
-    access_token = token_json.get("access_token")
-
-    # 2. 액세스 토큰으로 사용자 정보 요청
+    # 1. 액세스 토큰으로 사용자 정보 요청
     user_info_url = "https://kapi.kakao.com/v2/user/me"
     user_info_headers = {
         "Authorization": f"Bearer {access_token}",
@@ -232,7 +216,7 @@ async def login_kakao(kakao_code: KakaoCode, db: Session = Depends(get_db)):
     nickname = kakao_account.get("profile", {}).get("nickname", "사용자")
     social_id = str(user_info_json.get("id"))
 
-    # 3. 사용자 조회 및 생성
+    # 2. 사용자 조회 및 생성
     user = get_user_by_email(db, email=email)
     if not user:
         user_info = SocialUserCreate(
@@ -243,7 +227,7 @@ async def login_kakao(kakao_code: KakaoCode, db: Session = Depends(get_db)):
         )
         user = create_social_user(db, user_info)
     
-    # 4. 서비스 JWT 토큰 발급
+    # 3. 서비스 JWT 토큰 발급
     service_access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     service_access_token = create_access_token(
         data={"sub": user.email}, expires_delta=service_access_token_expires

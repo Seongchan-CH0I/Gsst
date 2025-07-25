@@ -82,7 +82,7 @@ class _SmartGoalPageState extends State<SmartGoalPage> {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 20),
-                    Text("Gemini가 최고의 레시피를 찾고 있어요...", style: TextStyle(color: Colors.white, fontSize: 16)),
+                    Text("최고의 레시피를 찾고 있어요...", style: TextStyle(color: Colors.white, fontSize: 16)),
                   ],
                 ),
               ),
@@ -168,7 +168,7 @@ class _SmartGoalPageState extends State<SmartGoalPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/recommend'),
+        Uri.parse('http://127.0.0.1:8000/recipes/recommend'),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: requestBody,
       ).timeout(const Duration(seconds: 60));

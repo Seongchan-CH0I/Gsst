@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({Key? key}) : super(key: key);
@@ -49,8 +50,7 @@ class _MyPageState extends State<MyPage> {
           isLoading = false;
         });
       } else {
-        // 토큰이 유효하지 않은 경우 등
-        await storage.delete(key: 'access_token'); // 만료되거나 잘못된 토큰 삭제
+        await storage.delete(key: 'access_token');
         setState(() {
           isLoggedIn = false;
           isLoading = false;
@@ -65,18 +65,34 @@ class _MyPageState extends State<MyPage> {
   }
 
   Future<void> _handleLogin() async {
-    final isLoggedIn = await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => LoginPage()),
     );
 
-    if (isLoggedIn == true) {
-      // 로그인 성공 시, 사용자 정보를 다시 불러와 화면을 갱신합니다.
+    if (result == true) {
       setState(() {
         isLoading = true;
       });
       _checkLoginStatus();
     }
+  }
+
+  Future<void> _logout() async {
+    try {
+      // 카카오 SDK 로그아웃 (카카오 계정 세션 만료)
+      await UserApi.instance.logout();
+      print('카카오 로그아웃 성공');
+    } catch (error) {
+      print('카카오 로그아웃 실패: $error');
+    }
+    // 앱의 토큰 삭제
+    await storage.delete(key: 'access_token');
+    setState(() {
+      isLoggedIn = false;
+      userName = null;
+      userEmail = null;
+    });
   }
 
   @override
@@ -85,75 +101,69 @@ class _MyPageState extends State<MyPage> {
       body: Center(
         child: isLoading
             ? CircularProgressIndicator()
-            : Column(
-                children: <Widget>[
-                  Spacer(flex: 2),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: isLoggedIn
-                        ? _buildUserInfoBlock()
-                        : _buildLoginButtonBlock(),
-                  ),
-                  Spacer(flex: 3),
-                ],
+            : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: isLoggedIn
+                    ? _buildUserInfoBlock()
+                    : _buildLoginButtonBlock(),
               ),
       ),
     );
   }
 
   Widget _buildUserInfoBlock() {
-    return Container(
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 8,
-            offset: Offset(0, 3), // changes position of shadow
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                spreadRadius: 2,
+                blurRadius: 8,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('이름', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-          SizedBox(height: 4),
-          Text(userName ?? '정보 없음', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          SizedBox(height: 16),
-          Text('이메일', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-          SizedBox(height: 4),
-          Text(userEmail ?? '정보 없음', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('이름', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              SizedBox(height: 4),
+              Text(userName ?? '정보 없음', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              SizedBox(height: 16),
+              Text('이메일', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              SizedBox(height: 4),
+              Text(userEmail ?? '정보 없음', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: _logout,
+          child: Text('로그아웃'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.redAccent,
+            minimumSize: Size(double.infinity, 50),
+            textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        )
+      ],
     );
   }
 
   Widget _buildLoginButtonBlock() {
-    return Container(
-      padding: const EdgeInsets.all(24.0),
-       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 8,
-            offset: Offset(0, 3), // changes position of shadow
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: _handleLogin,
-        child: Text('로그인 하기'),
-        style: ElevatedButton.styleFrom(
-          minimumSize: Size(double.infinity, 50), // 버튼의 최소 크기
-          textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
+    return ElevatedButton(
+      onPressed: _handleLogin,
+      child: Text('로그인 하기'),
+      style: ElevatedButton.styleFrom(
+        minimumSize: Size(double.infinity, 50),
+        textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),
     );
   }
