@@ -14,9 +14,9 @@ from typing import List, Optional
 # --- 1. 데이터베이스 설정 및 연결 (Foundation) ---
 
 # .env 파일에서 환경 변수 로드
-dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+# backend/auth/auth.py에서 프로젝트 루트의 .env 파일을 찾도록 경로 수정
+dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '.env')
 load_dotenv(dotenv_path=dotenv_path)
-
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")

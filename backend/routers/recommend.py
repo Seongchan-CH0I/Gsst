@@ -1,17 +1,15 @@
+import os
+import requests
 import json
+import google.generativeai as genai
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-import os
-import google.generativeai as genai
 from dotenv import load_dotenv
-import requests
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 
 router = APIRouter()
-
-# --- 데이터 모델 ---
 
 class Recipe(BaseModel):
     name: str
@@ -34,8 +32,7 @@ class RecommendationRequest(BaseModel):
 
 # --- API 및 모델 설정 ---
 try:
-    # .env 파일의 절대 경로를 동적으로 계산
-    dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+    dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
     load_dotenv(dotenv_path=dotenv_path)
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -82,6 +79,7 @@ def crawl_recipe(url: str) -> Optional[str]:
         # 레시피 제목, 재료, 설명, 조리법 등 주요 정보를 포함하는 영역 선택
         # (만개의 레시피 사이트 구조에 따라 셀렉터는 변경될 수 있음)
         title = soup.find('h3').get_text(strip=True) if soup.find('h3') else "제목 없음"
+        
         ingredients = soup.find('div', class_='ready_ingre3')
         ingredients_text = ingredients.get_text('\n', strip=True) if ingredients else "재료 정보 없음"
         
@@ -97,7 +95,7 @@ def crawl_recipe(url: str) -> Optional[str]:
 # --- API 엔드포인트 ---
 
 @router.post("/recommend", response_model=List[Recipe])
-async def recommend_recipe(request: RecommendationRequest):
+async def recommend_recipe(request: RecommendationRequest): # async def VS def : 전자 = 후자 + '이 함수는 비동기적인 사건을 포함함!'을 선언
     if not gemini_model:
         raise HTTPException(status_code=500, detail="Gemini API 모델이 초기화되지 않았습니다.")
 
@@ -122,7 +120,7 @@ async def recommend_recipe(request: RecommendationRequest):
     """
     
     try:
-        response = await gemini_model.generate_content_async(keyword_prompt)
+        response = await gemini_model.generate_content_async(keyword_prompt) # await로 기다리는 시간 동안 이 서버는 다른 일을 할 수 있음
         search_keywords = [kw.strip() for kw in response.text.split('\n') if kw.strip()]
         print(f"생성된 검색 키워드: {search_keywords}")
     except Exception as e:

@@ -1,3 +1,8 @@
+# import 하는 종류: 외부 라이브러리, 내장 라이브러리, 프로젝트 내부 모듈 
+# 이 파일은 '의존성 파일'로, 프로젝트에서 사용하는 '외부 라이브러리'들을 메모하는 거임
+# 즉, '이 프로젝트를 실행하려면 아래 목록들을 설치해야 합니다.' 라는 뜻
+# 혼자 프로젝트 진행할 때는 따로 명시할 필요 없음. 하지만 협업 시 반드시 작성 필요
+
 fastapi
 uvicorn
 requests
@@ -6,9 +11,5 @@ python-jose[cryptography]
 passlib[bcrypt][standard]
 mysql-connector-python
 google-generativeai
-python-dotenv
-requests
-beautifulsoup4
 google-api-python-client
-python-jose[cryptography]
-passlib[bcrypt]
+beautifulsoup4

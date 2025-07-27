@@ -12,21 +12,15 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 # CORS 설정
-origins = ["*"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
 # 라우터 등록
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(recommend.router, prefix="/recipes", tags=["Recipes"])
 app.include_router(mypage.router, prefix="/mypage", tags=["My Page"])
-
-@app.get("/")
-def read_root():
-    return {"message": "Recipe recommendation API is running."}
