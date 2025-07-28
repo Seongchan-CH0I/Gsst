@@ -12,10 +12,9 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 # --- 1. 데이터베이스 설정 및 연결 (Foundation) ---
+# DB = 창고, 엔진 = 창고의 중앙 전력 시스템, 세션 = 창고 안 물품을 가져와서 작업하는 공간, 베이스 = 창고의 지도
 
-# .env 파일에서 환경 변수 로드
-# backend/auth/auth.py에서 프로젝트 루트의 .env 파일을 찾도록 경로 수정
-dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '.env')
+dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')
 load_dotenv(dotenv_path=dotenv_path)
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
@@ -23,7 +22,7 @@ DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 
-DATABASE_URL = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}" #  SQLAlchemy에게 DB의 위치와 구조 전달
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -36,14 +35,17 @@ def get_db():
     finally:
         db.close()
 
-print(f"데이터베이스 연결 설정 완료. URL: {DATABASE_URL}")
-
 # --- 2. 데이터베이스 모델 정의 (Foundation) ---
 
 class User(Base):
+    # id : 유저의 주민등록번호 역할 (고유 식별 번호)
+    # email : 유저의 집 주소 역할 (언제든지 바뀔 수 있는 번호. 실제로 유저에게 보이는 데이터 값이므로 프로젝트의 중요 로직에 활용하기 어려움)
+    # 굳이 나눠야하나? : 유지보수성(현존 어플들 대부분 이렇게 해옴), 접근성(외래키로 id를 사용하는 게 더 간편), 확장성(이메일 변경 기능이 언제 필요할지도 모름)
+    # id - primary_key: users 테이블의 각 행이 모두 고유의 키를 가지도록 함. (users 테이블의 대표 식별자를 지정함)
+    # email - unique: users 테이블의 각 행이 모두 고유의 이메일을 가지도록 함. (email 컬럼이 중복이 불가능하도록 함)
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=False) 
     password = Column(String(255), nullable=True)
     name = Column(String(100), nullable=False)
     social_provider = Column(String(50), nullable=True)
@@ -51,7 +53,6 @@ class User(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-print("데이터베이스 모델 정의 완료: User")
 
 # --- 3. 데이터 스키마 정의 (Schemas) ---
 
@@ -82,10 +83,12 @@ class TokenData(BaseModel):
 
 class KakaoAccessToken(BaseModel):
     access_token: str
+class DevLoginRequest(BaseModel):
+    email: str
 
-print("데이터 스키마 정의 완료")
 
 # --- 4. 보안 유틸리티 (Security) ---
+# 토큰 관련 작업이 이루어지는 곳
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = os.getenv("JWT_ALGORITHM")
@@ -113,7 +116,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-print("보안 유틸리티 구현 완료")
 
 # --- 5. 데이터베이스 CRUD 함수 구현 (CRUD) ---
 
@@ -144,7 +146,6 @@ def create_social_user(db: Session, user_info: SocialUserCreate):
     db.refresh(db_user)
     return db_user
 
-print("데이터베이스 CRUD 함수 구현 완료")
 
 # --- 6. API 라우터 및 엔드포인트 구현 (API Layer) ---
 
@@ -235,8 +236,7 @@ async def login_kakao(kakao_access_token: KakaoAccessToken, db: Session = Depend
     return {"access_token": service_access_token, "token_type": "bearer"}
 
 
-class DevLoginRequest(BaseModel):
-    email: str
+
 
 @router.post("/dev-login", response_model=Token, summary="개발용 로그인", include_in_schema=False)
 async def dev_login_for_access_token(request: DevLoginRequest, db: Session = Depends(get_db)):
@@ -256,5 +256,3 @@ async def dev_login_for_access_token(request: DevLoginRequest, db: Session = Dep
 @router.get("/me", response_model=UserInDB, summary="현재 사용자 정보 확인")
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
-
-print("API 라우터 및 엔드포인트 구현 완료")

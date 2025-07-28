@@ -32,7 +32,7 @@ class RecommendationRequest(BaseModel):
 
 # --- API 및 모델 설정 ---
 try:
-    dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')
     load_dotenv(dotenv_path=dotenv_path)
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -166,7 +166,9 @@ async def recommend_recipe(request: RecommendationRequest): # async def VS def :
 
     try:
         response = await gemini_model.generate_content_async(final_prompt)
-        response_text = response.text.strip()
+        response_text = response.text.strip() 
+
+        # Gemini의 response에 순수한 json만 남기도록 하는 가정문
         if response_text.startswith("```json"):
             json_str = response_text[len("```json"):-len("```")].strip()
         else:
