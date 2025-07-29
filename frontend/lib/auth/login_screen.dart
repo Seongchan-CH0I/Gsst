@@ -3,16 +3,15 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -38,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         final tokenData = jsonDecode(response.body);
         await storage.write(key: 'access_token', value: tokenData['access_token']);
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(true); // Return true on success
       } else {
         _showErrorDialog('카카오 로그인 실패: ${response.body}');
       }

@@ -236,8 +236,6 @@ async def login_kakao(kakao_access_token: KakaoAccessToken, db: Session = Depend
     return {"access_token": service_access_token, "token_type": "bearer"}
 
 
-
-
 @router.post("/dev-login", response_model=Token, summary="개발용 로그인", include_in_schema=False)
 async def dev_login_for_access_token(request: DevLoginRequest, db: Session = Depends(get_db)):
     user = get_user_by_email(db, email=request.email)

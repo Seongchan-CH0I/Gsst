@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:frontend/mypage.dart';
+import 'package:frontend/mypage/mypage.dart';
 import 'package:frontend/smart_goal_page.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -35,9 +35,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: const MainPage(),
-    );
+      )
+    )
   }
 }
 
