@@ -64,6 +64,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // "개발자로 로그인"을 위한 메서드
+  void _developerLogin() async {
+    await storage.write(key: 'access_token', value: 'developer_token');
+    Navigator.of(context).pop(true); // 성공 시 true 반환
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,6 +134,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   // TODO: Navigate to registration page
                 },
                 child: Text('아직 계정이 없으신가요? 회원가입'),
+              ),
+              SizedBox(height: 16), // 간격 추가
+              // "개발자로 로그인" 버튼
+              ElevatedButton(
+                onPressed: _developerLogin,
+                child: Text('개발자로 로그인'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
