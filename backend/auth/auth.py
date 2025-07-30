@@ -47,7 +47,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False) 
     password = Column(String(255), nullable=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100), nullable=True)
     social_provider = Column(String(50), nullable=True)
     social_id = Column(String(255), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
@@ -58,7 +58,6 @@ class User(Base):
 
 class UserBase(BaseModel):
     email: str
-    name: str
 
 class UserCreate(UserBase):
     password: str
@@ -69,6 +68,7 @@ class SocialUserCreate(UserBase):
 
 class UserInDB(UserBase):
     id: int
+    name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     class Config:
@@ -78,8 +78,14 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class TokenResponse(Token):
+    nickname_required: bool
+
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+class NicknameUpdate(BaseModel):
+    name: str
 
 class KakaoAccessToken(BaseModel):
     access_token: str
@@ -126,7 +132,6 @@ def create_user(db: Session, user: UserCreate):
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
-        name=user.name,
         password=hashed_password
     )
     db.add(db_user)
@@ -137,7 +142,6 @@ def create_user(db: Session, user: UserCreate):
 def create_social_user(db: Session, user_info: SocialUserCreate):
     db_user = User(
         email=user_info.email,
-        name=user_info.name,
         social_provider=user_info.social_provider,
         social_id=user_info.social_id
     )
@@ -178,7 +182,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
     return create_user(db=db, user=user)
 
-@router.post("/login", response_model=Token, summary="로그인")
+@router.post("/login", response_model=TokenResponse, summary="로그인")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = get_user_by_email(db, email=form_data.username)
     if not user or not user.password or not verify_password(form_data.password, user.password):
@@ -191,9 +195,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "nickname_required": user.name is None
+    }
 
-@router.post("/login/kakao", response_model=Token, summary="카카오 소셜 로그인")
+@router.post("/login/kakao", response_model=TokenResponse, summary="카카오 소셜 로그인")
 async def login_kakao(kakao_access_token: KakaoAccessToken, db: Session = Depends(get_db)):
     access_token = kakao_access_token.access_token
 
@@ -214,7 +222,6 @@ async def login_kakao(kakao_access_token: KakaoAccessToken, db: Session = Depend
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="카카오 계정에 이메일 정보가 없습니다. (사용자 동의 필요)")
 
     email = kakao_account.get("email")
-    nickname = kakao_account.get("profile", {}).get("nickname", "사용자")
     social_id = str(user_info_json.get("id"))
 
     # 2. 사용자 조회 및 생성
@@ -222,7 +229,6 @@ async def login_kakao(kakao_access_token: KakaoAccessToken, db: Session = Depend
     if not user:
         user_info = SocialUserCreate(
             email=email,
-            name=nickname,
             social_provider="kakao",
             social_id=social_id
         )
@@ -233,8 +239,22 @@ async def login_kakao(kakao_access_token: KakaoAccessToken, db: Session = Depend
     service_access_token = create_access_token(
         data={"sub": user.email}, expires_delta=service_access_token_expires
     )
-    return {"access_token": service_access_token, "token_type": "bearer"}
+    return {
+        "access_token": service_access_token,
+        "token_type": "bearer",
+        "nickname_required": user.name is None
+    }
 
+@router.put("/me/nickname", response_model=UserInDB, summary="닉네임 설정")
+async def update_nickname(nickname_data: NicknameUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not nickname_data.name or len(nickname_data.name.strip()) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nickname cannot be empty")
+    
+    current_user.name = nickname_data.name
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 
 @router.post("/dev-login", response_model=Token, summary="개발용 로그인", include_in_schema=False)
 async def dev_login_for_access_token(request: DevLoginRequest, db: Session = Depends(get_db)):

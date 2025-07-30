@@ -22,9 +22,11 @@ class _MypageScreenState extends State<MypageScreen> {
 
   Future<void> _checkLoginStatus() async {
     String? token = await storage.read(key: 'access_token');
-    setState(() {
-      _isLoggedIn = token != null;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = token != null;
+      });
+    }
   }
 
   void _onLoginSuccess() {
