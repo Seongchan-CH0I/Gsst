@@ -47,7 +47,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False) 
     password = Column(String(255), nullable=True)
-    name = Column(String(100), nullable=True)
+    name = Column(String(100), nullable=False)
     social_provider = Column(String(50), nullable=True)
     social_id = Column(String(255), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
@@ -132,7 +132,8 @@ def create_user(db: Session, user: UserCreate):
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
-        password=hashed_password
+        password=hashed_password,
+        name=""
     )
     db.add(db_user)
     db.commit()
@@ -143,7 +144,8 @@ def create_social_user(db: Session, user_info: SocialUserCreate):
     db_user = User(
         email=user_info.email,
         social_provider=user_info.social_provider,
-        social_id=user_info.social_id
+        social_id=user_info.social_id,
+        name=""
     )
     db.add(db_user)
     db.commit()
@@ -198,7 +200,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "nickname_required": user.name is None
+        "nickname_required": user.name == ""
     }
 
 @router.post("/login/kakao", response_model=TokenResponse, summary="카카오 소셜 로그인")
@@ -242,7 +244,7 @@ async def login_kakao(kakao_access_token: KakaoAccessToken, db: Session = Depend
     return {
         "access_token": service_access_token,
         "token_type": "bearer",
-        "nickname_required": user.name is None
+        "nickname_required": user.name == ""
     }
 
 @router.put("/me/nickname", response_model=UserInDB, summary="닉네임 설정")
