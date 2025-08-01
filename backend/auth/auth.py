@@ -52,6 +52,7 @@ class User(Base):
     social_id = Column(String(255), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    profile_image_url = Column(String(255), nullable=True)
 
 
 # --- 3. 데이터 스키마 정의 (Schemas) ---
@@ -71,6 +72,7 @@ class UserInDB(UserBase):
     name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    profile_image_url: Optional[str] = None
     class Config:
         orm_mode = True
 

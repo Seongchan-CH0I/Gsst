@@ -6,28 +6,38 @@ class LoggedOutView extends StatelessWidget {
 
   const LoggedOutView({Key? key, required this.onLoginSuccess}) : super(key: key);
 
+  //============================================================================
+  // 1. Logic Methods
+  //============================================================================
+
+  void _navigateToLogin(BuildContext context) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+    if (result == true) {
+      onLoginSuccess();
+    }
+  }
+
+  //============================================================================
+  // 2. Widget Build Method
+  //============================================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('마이페이지'),
+        title: const Text('마이페이지'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('로그인이 필요합니다.'),
-            SizedBox(height: 20),
+            const Text('로그인이 필요합니다.'),
+            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async {
-                final result = await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                );
-                if (result == true) {
-                  onLoginSuccess();
-                }
-              },
-              child: Text('로그인 페이지로 이동'),
+              onPressed: () => _navigateToLogin(context),
+              child: const Text('로그인 페이지로 이동'),
             ),
           ],
         ),

@@ -11,17 +11,26 @@ class MypageScreen extends StatefulWidget {
 }
 
 class _MypageScreenState extends State<MypageScreen> {
-  final storage = new FlutterSecureStorage();
+  //============================================================================
+  // 1. State Variables
+  //============================================================================
+  final _storage = const FlutterSecureStorage();
   bool _isLoggedIn = false;
 
+  //============================================================================
+  // 2. Lifecycle Methods
+  //============================================================================
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
   }
 
+  //============================================================================
+  // 3. Logic Methods
+  //============================================================================
   Future<void> _checkLoginStatus() async {
-    String? token = await storage.read(key: 'access_token');
+    String? token = await _storage.read(key: 'access_token');
     if (mounted) {
       setState(() {
         _isLoggedIn = token != null;
@@ -41,6 +50,9 @@ class _MypageScreenState extends State<MypageScreen> {
     });
   }
 
+  //============================================================================
+  // 4. Widget Build Method
+  //============================================================================
   @override
   Widget build(BuildContext context) {
     return _isLoggedIn

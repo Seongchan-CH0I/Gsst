@@ -11,9 +11,15 @@ class SetNicknameScreen extends StatefulWidget {
 }
 
 class _SetNicknameScreenState extends State<SetNicknameScreen> {
+  //============================================================================
+  // 1. State Variables
+  //============================================================================
   final _nicknameController = TextEditingController();
   final _storage = const FlutterSecureStorage();
 
+  //============================================================================
+  // 2. Logic Methods
+  //============================================================================
   Future<void> _setNickname() async {
     final nickname = _nicknameController.text.trim();
     if (nickname.isEmpty) {
@@ -53,6 +59,9 @@ class _SetNicknameScreenState extends State<SetNicknameScreen> {
     }
   }
 
+  //============================================================================
+  // 3. UI Helper Methods
+  //============================================================================
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -71,6 +80,9 @@ class _SetNicknameScreenState extends State<SetNicknameScreen> {
     );
   }
 
+  //============================================================================
+  // 4. Widget Build Method
+  //============================================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
