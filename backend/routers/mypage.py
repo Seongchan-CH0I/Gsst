@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 import shutil
 import os
+from PIL import Image
 
 # auth.py에서 필요한 의존성 및 스키마를 가져옵니다.
 from backend.auth.auth import get_current_user, UserInDB, get_db, User
@@ -23,11 +24,19 @@ async def upload_profile_image(
     static_dir = "static"
     os.makedirs(static_dir, exist_ok=True)
 
-    file_path = os.path.join(static_dir, f"{current_user.id}_{file.filename}")
+    # Convert image to PNG
+    image = Image.open(file.file)
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+        
+    # Change file extension to .png
+    file_name, _ = os.path.splitext(file.filename)
+    new_filename = f"{current_user.id}_{file_name}.png"
+    file_path = os.path.join(static_dir, new_filename)
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    file_url = f"/static/{current_user.id}_{file.filename}"
+    image.save(file_path, 'PNG')
+
+    file_url = f"/static/{new_filename}"
 
     current_user.profile_image_url = file_url
     db.add(current_user)

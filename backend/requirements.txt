@@ -13,3 +13,4 @@ mysql-connector-python
 google-generativeai
 google-api-python-client
 beautifulsoup4
+Pillow

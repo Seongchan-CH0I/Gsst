@@ -14,8 +14,14 @@ print("Database tables created (if not already existing).")
 
 app = FastAPI()
 
+from pathlib import Path
+
+# ... (other imports)
+
 # 정적 파일 마운트
-app.mount("/static", StaticFiles(directory="backend/static"), name="static")
+static_files_path = Path(__file__).parent.parent / "static"
+app.mount("/static", StaticFiles(directory=static_files_path), name="static")
+
 
 # CORS 설정
 app.add_middleware(

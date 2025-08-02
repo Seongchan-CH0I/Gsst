@@ -93,7 +93,7 @@ class _LoggedInViewState extends State<LoggedInView> {
           final data = jsonDecode(utf8.decode(responseData.bodyBytes));
           if (mounted) {
             setState(() {
-              _profileImageUrl = data['profile_image_url'];
+              _profileImageUrl = data['profile_image_url'] + '?t=' + DateTime.now().millisecondsSinceEpoch.toString();
             });
           }
           ScaffoldMessenger.of(context).showSnackBar(
