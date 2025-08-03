@@ -28,17 +28,43 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// 로그인 성공 후 닉네임 설정 여부에 따라 화면을 이동시키는 헬퍼 함수
   void _handleLoginSuccess(Map<String, dynamic> tokenData) async {
-    await _storage.write(key: 'access_token', value: tokenData['access_token']);
+    final accessToken = tokenData['access_token'];
+    await _storage.write(key: 'access_token', value: accessToken);
     if (!mounted) return;
 
-    if (tokenData['nickname_required'] == true) {
-      // 닉네임 설정이 필요한 경우
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const SetNicknameScreen()),
+    // 백엔드에서 받은 토큰으로 사용자 정보를 직접 조회하여 닉네임 유무를 확인합니다.
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8000/mypage/me'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
       );
-    } else {
-      // 닉네임 설정이 필요 없는 경우 (기존 사용자)
-      Navigator.of(context).pop(true); // 성공 시 true 반환
+
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(utf8.decode(response.bodyBytes));
+        final nickname = userData['name'];
+
+        if (nickname == null || nickname.isEmpty) {
+          // 닉네임이 없으면 설정 화면으로 이동
+          final result = await Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const SetNicknameScreen()),
+          );
+          // 닉네임 설정 완료 후 돌아왔을 때, 로그인 성공으로 처리
+          if (result == true) {
+            Navigator.of(context).pop(true);
+          }
+        } else {
+          // 닉네임이 있으면 바로 로그인 성공 처리
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        // 사용자 정보 조회 실패
+        _showErrorDialog('사용자 정보를 가져오는데 실패했습니다: ${utf8.decode(response.bodyBytes)}');
+      }
+    } catch (e) {
+      _showErrorDialog('오류가 발생했습니다: $e');
     }
   }
 

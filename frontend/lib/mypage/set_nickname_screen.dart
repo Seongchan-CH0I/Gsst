@@ -48,8 +48,9 @@ class _SetNicknameScreenState extends State<SetNicknameScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('닉네임이 성공적으로 설정되었습니다.')),
         );
-        // 닉네임 설정 후 메인 화면으로 이동 (예: popUntil로 모든 이전 라우트 제거)
-        Navigator.of(context).popUntil((route) => route.isFirst); // 가장 첫 화면으로 이동
+        // 닉네임 설정이 완료되었으므로, 이전 화면으로 돌아가 상태를 갱신합니다.
+        // 이 pop은 LoggedOutView에게 로그인 성공 신호를 보냅니다.
+        Navigator.of(context).pop(true);
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         _showErrorDialog('닉네임 설정 실패: ${errorData['detail']}');
