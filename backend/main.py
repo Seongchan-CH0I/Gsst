@@ -1,14 +1,16 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import recommend, mypage
+from backend.routers import recommend, mypage, tips
 from backend.auth import auth
 from backend.auth.auth import engine, Base, User # 데이터베이스 엔진과 Base 모델, User 모델 가져오기
+from backend.routers.tips import RecipeTip # RecipeTip 모델 가져오기
 
 # 데이터베이스 테이블 생성
 # 애플리케이션이 시작될 때, User 모델에 정의된 스키마를 바탕으로
 # 데이터베이스에 'users' 테이블이 없으면 새로 생성합니다.
-print("Attempting to create database tables...")
+print("Attempting to drop and recreate database tables...")
+RecipeTip.__table__.drop(engine, checkfirst=True)
 Base.metadata.create_all(bind=engine)
 print("Database tables created (if not already existing).")
 
@@ -36,3 +38,4 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(recommend.router, prefix="/recipes", tags=["Recipes"])
 app.include_router(mypage.router, prefix="/mypage", tags=["My Page"])
+app.include_router(tips.router, prefix="/api/tips", tags=["Tips"])

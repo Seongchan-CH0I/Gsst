@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/mypage/mypage_screen.dart';
+import 'package:frontend/recipe_tips/recipe_tips_screen.dart';
 import 'package:frontend/smart_goal_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -15,9 +16,9 @@ class _MainPageState extends State<MainPage> {
   //============================================================================
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
+  static List<Widget> _widgetOptions = <Widget>[
     SmartGoalPage(),
-    Center(child: Text('레시피 관련 팁 페이지')),
+    RecipeTipsScreen(),
     MypageScreen(),
   ];
 

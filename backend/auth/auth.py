@@ -2,7 +2,7 @@ import os
 import requests
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, func
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -53,6 +53,8 @@ class User(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     profile_image_url = Column(String(255), nullable=True)
+
+    tips = relationship("RecipeTip", back_populates="owner")
 
 
 # --- 3. 데이터 스키마 정의 (Schemas) ---
